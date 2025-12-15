@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mindset Check App</title>
+    
+    <!-- Fonts for Multilingual Support -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hind:wght@400;600;700&family=Noto+Sans+Bengali:wght@400;600;700&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js for Graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --primary: #6C63FF;
+            --primary-dark: #5a52d5;
+            --bg-color: #F4F7F6;
+            --card-bg: #FFFFFF;
+            --text-main: #2D3436;
+            --text-sub: #636E72;
+            --success: #00b894;
+            --danger: #d63031;
+            --shadow: 0 8px 30px rgba(0,0,0,0.08);
+            --radius: 20px;
+            --font-en: 'Poppins', sans-serif;
+            --font-bn: 'Noto Sans Bengali', sans-serif;
+            --font-hi: 'Hind', sans-serif;
+            --transition: all 0.3s ease;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #1e1e2e;
+            --card-bg: #2d2d44;
+            --text-main: #ecf0f1;
+            --text-sub: #b2bec3;
+            --shadow: 0 8px 30px rgba(0,0,0,0.3);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            font-family: var(--font-en);
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            overflow: hidden; /* App-like feel */
+        }
+
+        /* Mobile Container */
+        #app-container {
+            width: 100%;
+            max-width: 480px;
+            height: 100%;
+            background: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow-y: auto;
+        }
+
+        /* Typography Override based on Language */
+        body[data-lang="bn"] { font-family: var(--font-bn); }
+        body[data-lang="hi"] { font-family: var(--font-hi); }
+
+        /* Views System */
+        .view {
+            display: none;
+            padding: 20px;
+            animation: fadeIn 0.4s ease;
+            height: 100%;
+            flex-direction: column;
+        }
+        
+        .view.active { display: flex; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* UI Elements */
+        h1, h2, h3 { margin-bottom: 15px; font-weight: 700; text-align: center; }
+        p { margin-bottom: 20px; line-height: 1.6; color: var(--text-sub); text-align: center; }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 25px;
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 15px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 12px;
+            transition: var(--transition);
+            box-shadow: 0 4px 15px rgba(108, 99, 255, 0.3);
+        }
+
+        .btn:active { transform: scale(0.98); }
+        .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); box-shadow: none; }
+        .btn-secondary { background: var(--text-sub); opacity: 0.2; color: white; pointer-events: none; }
+        
+        [data-theme="dark"] .btn-outline { color: #fff; border-color: #fff; }
+
+        /* Language Selection Grid */
+        .lang-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            margin-top: auto;
+            margin-bottom: auto;
+        }
+
+        /* Quiz UI */
+        .progress-bar {
+            height: 6px;
+            background: rgba(0,0,0,0.1);
+            border-radius: 10px;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .option-btn {
+            background: var(--card-bg);
+            border: 2px solid rgba(0,0,0,0.05);
+            color: var(--text-main);
+            margin-bottom: 10px;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: left;
+            transition: var(--transition);
+        }
+        [data-theme="dark"] .option-btn { border-color: rgba(255,255,255,0.1); }
+        .option-btn.selected { border-color: var(--primary); background: rgba(108, 99, 255, 0.05); }
+
+        /* Result UI */
+        .result-emoji { font-size: 5rem; display: block; margin-bottom: 10px; animation: bounce 2s infinite; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        
+        .score-badges {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        .badge {
+            font-size: 0.8rem;
+            padding: 5px 10px;
+            border-radius: 20px;
+            background: rgba(0,0,0,0.05);
+        }
+        [data-theme="dark"] .badge { background: rgba(255,255,255,0.1); }
+
+        /* Navigation Bar */
+        .nav-bar {
+            margin-top: auto;
+            display: flex;
+            justify-content: space-around;
+            background: var(--card-bg);
+            padding: 15px 10px;
+            border-radius: var(--radius) var(--radius) 0 0;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.05);
+        }
+        .nav-item {
+            font-size: 1.5rem;
+            color: var(--text-sub);
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+        .nav-item.active { color: var(--primary); }
+
+        /* Settings */
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        .toggle-switch {
+            width: 50px;
+            height: 26px;
+            background: #ccc;
+            border-radius: 20px;
+            position: relative;
+            transition: 0.3s;
+        }
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 3px; left: 3px;
+            width: 20px; height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+        .toggle-active { background: var(--primary); }
+        .toggle-active::after { left: 27px; }
+
+        /* Chart Container */
+        .chart-container {
+            position: relative;
+            height: 250px;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body data-lang="en" data-theme="light">
+
+<div id="app-container">
+
+    <!-- 1. LANGUAGE SELECT VIEW -->
+    <div id="view-lang" class="view active">
+        <div class="card" style="margin-top: auto; margin-bottom: auto;">
+            <span style="font-size: 3rem;">🧠</span>
+            <h2>Mindset Check</h2>
+            <p>Select your language<br>ভাষা নির্বাচন করুন<br>भाषा चुनें</p>
+        </div>
+        <div class="lang-grid">
+            <button class="btn" onclick="setLanguage('en')">English</button>
+            <button class="btn" onclick="setLanguage('bn')">বাংলা (Bengali)</button>
+            <button class="btn" onclick="setLanguage('hi')">हिन्दी (Hindi)</button>
+        </div>
+    </div>
+
+    <!-- 2. HOME VIEW -->
+    <div id="view-home" class="view">
+        <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+            <h1 id="home-title">Hello!</h1>
+            <p id="home-desc">Let's check your mindset today.</p>
+            <div class="card" style="width: 100%;">
+                <span class="result-emoji">🧘</span>
+                <button class="btn" id="btn-start" onclick="startQuiz()">Start Checkup</button>
+            </div>
+        </div>
+        
+        <!-- Bottom Nav -->
+        <div class="nav-bar">
+            <button class="nav-item active" onclick="showView('view-home')">🏠</button>
+            <button class="nav-item" onclick="loadHistory(); showView('view-history')">📈</button>
+            <button class="nav-item" onclick="showView('view-settings')">⚙️</button>
+        </div>
+    </div>
+
+    <!-- 3. QUIZ VIEW -->
+    <div id="view-quiz" class="view">
+        <div class="progress-bar">
+            <div id="progress-fill" class="progress-fill"></div>
+        </div>
+        <div class="card">
+            <h3 id="question-text">Question goes here?</h3>
+        </div>
+        <div id="options-container">
+            <!-- Options injected by JS -->
+        </div>
+    </div>
+
+    <!-- 4. RESULT VIEW -->
+    <div id="view-result" class="view">
+        <div class="card" style="margin-top: 20px;">
+            <h2 id="result-title">Your Mindset</h2>
+            <span id="result-emoji" class="result-emoji">🌟</span>
+            <h1 id="result-name" style="color: var(--primary);">Positive</h1>
+            <p id="result-desc">You are feeling great today!</p>
+            
+            <div class="score-badges" id="score-badges">
+                <!-- Badges injected -->
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 id="advice-title">Quick Tip</h3>
+            <p id="result-advice">Keep it up!</p>
+        </div>
+
+        <button class="btn" id="btn-home" onclick="showView('view-home')">Go Home</button>
+        <button class="btn btn-outline" id="btn-share" onclick="shareResult()">Share Result</button>
+    </div>
+
+    <!-- 5. HISTORY VIEW -->
+    <div id="view-history" class="view">
+        <h2 id="history-title">Your Progress</h2>
+        <div class="card">
+            <div class="chart-container">
+                <canvas id="moodChart"></canvas>
+            </div>
+        </div>
+        <div id="history-list" style="padding-bottom: 80px;">
+            <!-- History items -->
+        </div>
+        <div class="nav-bar" style="position: fixed; bottom: 0; left:0; width: 100%; max-width:480px; left: 50%; transform: translateX(-50%);">
+            <button class="nav-item" onclick="showView('view-home')">🏠</button>
+            <button class="nav-item active" onclick="showView('view-history')">📈</button>
+            <button class="nav-item" onclick="showView('view-settings')">⚙️</button>
+        </div>
+    </div>
+
+    <!-- 6. SETTINGS VIEW -->
+    <div id="view-settings" class="view">
+        <h2 id="settings-title">Settings</h2>
+        
+        <div class="card">
+            <div class="setting-row">
+                <span id="lbl-darkmode">Dark Mode</span>
+                <div class="toggle-switch" id="toggle-theme" onclick="toggleTheme()"></div>
+            </div>
+            <div class="setting-row">
+                <span id="lbl-lang">Language</span>
+                <button class="btn-outline" style="width: auto; padding: 5px 15px; font-size: 0.9rem; margin:0;" onclick="showView('view-lang')">Change</button>
+            </div>
+        </div>
+
+        <button class="btn" style="background: var(--danger); margin-top: 20px;" id="btn-reset" onclick="clearHistory()">Reset History</button>
+
+        <div class="nav-bar" style="position: fixed; bottom: 0; left:0; width: 100%; max-width:480px; left: 50%; transform: translateX(-50%);">
+            <button class="nav-item" onclick="showView('view-home')">🏠</button>
+            <button class="nav-item" onclick="showView('view-history')">📈</button>
+            <button class="nav-item active" onclick="showView('view-settings')">⚙️</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+/* ----------------------------------------------------
+   1. DATA & TRANSLATIONS
+   ---------------------------------------------------- */
+const translations = {
+    en: {
+        homeTitle: "Mindset Check",
+        homeDesc: "Understand your mind with 12 simple questions.",
+        btnStart: "Start Checkup",
+        resultTitle: "Your Dominant Mindset",
+        adviceTitle: "My Advice For You",
+        btnHome: "Back to Home",
+        btnShare: "Share Result",
+        historyTitle: "Mood History",
+        settingsTitle: "Settings",
+        lblDarkMode: "Dark Mode",
+        lblLang: "Language",
+        btnReset: "Clear All Data",
+        alertReset: "History deleted!",
+        mindsets: {
+            positive: { name: "Positive & Radiant", desc: "You are radiating good vibes. Your outlook is optimistic.", advice: "Use this energy to help someone else today." },
+            motivated: { name: "Highly Motivated", desc: "You have a fire inside you today. Goals feel reachable.", advice: "Write down your top 3 goals and attack them now." },
+            focused: { name: "Laser Focused", desc: "Your mind is clear and sharp. Distractions are low.", advice: "Tackle your most difficult task immediately." },
+            stressed: { name: "Highly Stressed", desc: "You are feeling the weight of pressure.", advice: "Take a 5-minute breathing break. Nothing is more important than your health." },
+            overthinking: { name: "Overthinking Loop", desc: "Your mind is racing with 'what ifs'.", advice: "Write your worries on paper to get them out of your head." },
+            sad: { name: "Feeling Low", desc: "Your energy and spirits are a bit down.", advice: "Be gentle with yourself. Do one small thing that makes you smile." }
+        }
+    },
+    bn: {
+        homeTitle: "মাইন্ডসেট চেক",
+        homeDesc: "১২টি সহজ প্রশ্নের মাধ্যমে আপনার মনের অবস্থা জানুন।",
+        btnStart: "শুরু করুন",
+        resultTitle: "আপনার বর্তমান মানসিকতা",
+        adviceTitle: "আপনার জন্য পরামর্শ",
+        btnHome: "হোম পেজ",
+        btnShare: "শেয়ার করুন",
+        historyTitle: "আপনার ইতিহাস",
+        settingsTitle: "সেটিংস",
+        lblDarkMode: "ডার্ক মোড",
+        lblLang: "ভাষা",
+        btnReset: "সব তথ্য মুছুন",
+        alertReset: "ইতিহাস মুছে ফেলা হয়েছে!",
+        mindsets: {
+            positive: { name: "ইতিবাচক ও উজ্জ্বল", desc: "আপনি খুব ইতিবাচক বোধ করছেন।", advice: "এই শক্তি দিয়ে আজ অন্য কাউকে সাহায্য করুন।" },
+            motivated: { name: "খুবই অনুপ্রাণিত", desc: "আপনার ভেতর আজ কাজ করার প্রবল আগ্রহ আছে।", advice: "আপনার প্রধান ৩টি লক্ষ্য লিখুন এবং কাজ শুরু করুন।" },
+            focused: { name: "মনোযোগী", desc: "আপনার মন আজ খুব পরিষ্কার এবং তীক্ষ্ণ।", advice: "সবচেয়ে কঠিন কাজটি এখনই শুরু করুন।" },
+            stressed: { name: "অত্যধিক চাপে আছেন", desc: "আপনি মানসিক চাপে ভুগছেন।", advice: "৫ মিনিটের জন্য গভীর শ্বাস নিন। স্বাস্থ্যের চেয়ে কিছুই বড় নয়।" },
+            overthinking: { name: "অতিরিক্ত চিন্তা", desc: "আপনার মাথায় অহেতুক চিন্তার ঝড় চলছে।", advice: "চিন্তাগুলো কাগজে লিখে ফেলুন, মাথা হালকা হবে।" },
+            sad: { name: "মন খারাপ", desc: "আপনার মানসিক শক্তি কিছুটা কম মনে হচ্ছে।", advice: "নিজের প্রতি সদয় হোন। ছোট কিছু করুন যা আপনাকে খুশি করে।" }
+        }
+    },
+    hi: {
+        homeTitle: "माइंडसेट चेक",
+        homeDesc: "12 सरल सवालों के साथ अपने मन की स्थिति जानें।",
+        btnStart: "शुरू करें",
+        resultTitle: "आपकी मानसिकता",
+        adviceTitle: "मेरी सलाह",
+        btnHome: "होम पेज",
+        btnShare: "शेयर करें",
+        historyTitle: "इतिहास",
+        settingsTitle: "सेटिंग्स",
+        lblDarkMode: "डार्क मोड",
+        lblLang: "भाषा",
+        btnReset: "डाटा साफ़ करें",
+        alertReset: "इतिहास हटा दिया गया!",
+        mindsets: {
+            positive: { name: "सकारात्मक", desc: "आप बहुत सकारात्मक महसूस कर रहे हैं।", advice: "इस ऊर्जा का उपयोग किसी की मदद करने में करें।" },
+            motivated: { name: "प्रेरित (Motivated)", desc: "आपमें आज कुछ करने का जुनून है।", advice: "अपने 3 मुख्य लक्ष्यों को लिखें और काम शुरू करें।" },
+            focused: { name: "एकाग्र (Focused)", desc: "आपका दिमाग आज बहुत स्पष्ट और तेज है।", advice: "सबसे कठिन काम अभी निपटा लें।" },
+            stressed: { name: "तनावग्रस्त", desc: "आप बहुत दबाव महसूस कर रहे हैं।", advice: "5 मिनट गहरी सांस लें। स्वास्थ्य से बढ़कर कुछ नहीं।" },
+            overthinking: { name: "ज़रूरत से ज़्यादा सोचना", desc: "आपका दिमाग 'क्या होगा अगर' में फंसा है।", advice: "अपनी चिंताओं को कागज पर लिखें।" },
+            sad: { name: "उदास / लो", desc: "आपकी ऊर्जा थोड़ी कम लग रही है।", advice: "खुद पर सख़्त न हों। कुछ ऐसा करें जिससे आपको खुशी मिले।" }
+        }
+    }
+};
+
+const questionsData = [
+    {
+        id: 1,
+        text: { en: "How did you feel when you woke up?", bn: "ঘুম থেকে ওঠার পর কেমন লাগছিল?", hi: "जागने पर आपको कैसा महसूस हुआ?" },
+        options: [
+            { text: { en: "Energized", bn: "প্রাণবন্ত", hi: "ऊर्जावान" }, scores: { pos: 2, mot: 2, stress: 0, foc: 1 } },
+            { text: { en: "Tired", bn: "ক্লান্ত", hi: "थका हुआ" }, scores: { pos: 0, mot: -1, stress: 1, foc: 0 } },
+            { text: { en: "Anxious", bn: "উদ্বিগ্ন", hi: "चिंतित" }, scores: { pos: -1, mot: 0, stress: 2, foc: -1 } }
+        ]
+    },
+    {
+        id: 2,
+        text: { en: "You have a lot of work today. Reaction?", bn: "আজ অনেক কাজ। আপনার প্রতিক্রিয়া?", hi: "आज बहुत काम है। आपकी प्रतिक्रिया?" },
+        options: [
+            { text: { en: "Let's do it!", bn: "চলো করা যাক!", hi: "चलो करते हैं!" }, scores: { pos: 1, mot: 3, stress: 0, foc: 2 } },
+            { text: { en: "Overwhelmed", bn: "খুব চাপ লাগছে", hi: "घबराहट हो रही है" }, scores: { pos: -1, mot: -1, stress: 3, foc: -1 } },
+            { text: { en: "I'll manage", bn: "সামলে নেব", hi: "संभाल लूंगा" }, scores: { pos: 1, mot: 1, stress: 1, foc: 1 } }
+        ]
+    },
+    {
+        id: 3,
+        text: { en: "Are you easily distracted today?", bn: "আজ কি সহজেই মন উঠে যাচ্ছে?", hi: "क्या आज ध्यान भटक रहा है?" },
+        options: [
+            { text: { en: "Not at all", bn: "একদমই না", hi: "बिल्कुल नहीं" }, scores: { pos: 1, mot: 1, stress: 0, foc: 3 } },
+            { text: { en: "A little bit", bn: "অল্প অল্প", hi: "थोड़ा सा" }, scores: { pos: 0, mot: 0, stress: 1, foc: 0 } },
+            { text: { en: "Yes, constantly", bn: "হ্যাঁ, সারাক্ষণ", hi: "हाँ, लगातार" }, scores: { pos: -1, mot: -2, stress: 2, foc: -3 } }
+        ]
+    },
+    {
+        id: 4,
+        text: { en: "How do you see your future right now?", bn: "এখন ভবিষ্যৎ সম্পর্কে কি ভাবছেন?", hi: "अभी आप भविष्य के बारे में क्या सोचते हैं?" },
+        options: [
+            { text: { en: "Bright", bn: "উজ্জ্বল", hi: "उज्ज्वल" }, scores: { pos: 3, mot: 2, stress: 0, foc: 1 } },
+            { text: { en: "Uncertain", bn: "অনিশ্চিত", hi: "अनिश्चित" }, scores: { pos: 0, mot: 0, stress: 1, foc: 0 } },
+            { text: { en: "Scary", bn: "ভয়ঙ্কর", hi: "डरावना" }, scores: { pos: -2, mot: -1, stress: 3, foc: -1 } }
+        ]
+    },
+    {
+        id: 5,
+        text: { en: "A small mistake happens. You...", bn: "ছোট্ট ভুল হলে আপনি...", hi: "छोटी गलती होने पर आप..." },
+        options: [
+            { text: { en: "Fix it & move on", bn: "ঠিক করে এগোই", hi: "ठीक करके आगे बढ़ते हैं" }, scores: { pos: 2, mot: 1, stress: 0, foc: 2 } },
+            { text: { en: "Blame myself", bn: "নিজেকে দোষ দিই", hi: "खुद को दोष देते हैं" }, scores: { pos: -1, mot: -1, stress: 2, foc: 0 } },
+            { text: { en: "Panic", bn: "ভয় পাই", hi: "घबरा जाते हैं" }, scores: { pos: -1, mot: -2, stress: 3, foc: -2 } }
+        ]
+    },
+    {
+        id: 6,
+        text: { en: "Energy levels right now?", bn: "এখন শক্তির মাত্রা কেমন?", hi: "अभी ऊर्जा का स्तर कैसा है?" },
+        options: [
+            { text: { en: "High", bn: "অনেক বেশি", hi: "उच्च" }, scores: { pos: 1, mot: 2, stress: 0, foc: 1 } },
+            { text: { en: "Medium", bn: "মাঝারি", hi: "मध्यम" }, scores: { pos: 0, mot: 0, stress: 0, foc: 0 } },
+            { text: { en: "Low", bn: "কম", hi: "कम" }, scores: { pos: -1, mot: -2, stress: 1, foc: -1 } }
+        ]
+    },
+    {
+        id: 7,
+        text: { en: "Thoughts running in your head?", bn: "মাথায় কি চিন্তা ঘুরছে?", hi: "दिमाग में क्या विचार चल रहे हैं?" },
+        options: [
+            { text: { en: "Clear thoughts", bn: "পরিষ্কার চিন্তা", hi: "स्पष्ट विचार" }, scores: { pos: 1, mot: 1, stress: -1, foc: 3 } },
+            { text: { en: "Too many thoughts", bn: "অজস্র চিন্তা", hi: "बहुत सारे विचार" }, scores: { pos: 0, mot: 0, stress: 2, foc: -2 } },
+            { text: { en: "Negative loops", bn: "নেতিবাচক চিন্তা", hi: "नकारात्मक विचार" }, scores: { pos: -2, mot: -1, stress: 3, foc: -1 } }
+        ]
+    },
+    {
+        id: 8,
+        text: { en: "Do you feel like talking to people?", bn: "মানুষের সাথে কথা বলতে ইচ্ছে করছে?", hi: "क्या लोगों से बात करने का मन है?" },
+        options: [
+            { text: { en: "Yes, share joy", bn: "হ্যাঁ, আনন্দ ভাগ করতে", hi: "हाँ, खुशी बांटने" }, scores: { pos: 3, mot: 1, stress: 0, foc: 0 } },
+            { text: { en: "Maybe later", bn: "পরে কথা বলব", hi: "शायद बाद में" }, scores: { pos: 0, mot: 0, stress: 1, foc: 0 } },
+            { text: { en: "No, leave me alone", bn: "না, একা থাকতে চাই", hi: "नहीं, अकेला छोड़ दो" }, scores: { pos: -1, mot: -1, stress: 2, foc: 0 } }
+        ]
+    },
+    {
+        id: 9,
+        text: { en: "How was your sleep?", bn: "ঘুম কেমন হয়েছে?", hi: "नींद कैसी थी?" },
+        options: [
+            { text: { en: "Great", bn: "দারুণ", hi: "बहुत अच्छी" }, scores: { pos: 1, mot: 2, stress: -1, foc: 2 } },
+            { text: { en: "Okay", bn: "মোটামুটি", hi: "ठीक-ठाक" }, scores: { pos: 0, mot: 0, stress: 0, foc: 0 } },
+            { text: { en: "Terrible", bn: "খুব খারাপ", hi: "बहुत खराब" }, scores: { pos: -1, mot: -2, stress: 2, foc: -2 } }
+        ]
+    },
+    {
+        id: 10,
+        text: { en: "Do you have a goal for today?", bn: "আজকের জন্য কোনো লক্ষ্য আছে?", hi: "क्या आज के लिए कोई लक्ष्य है?" },
+        options: [
+            { text: { en: "Yes, specific ones", bn: "হ্যাঁ, নির্দিষ্ট লক্ষ্য আছে", hi: "हाँ, निश्चित लक्ष्य है" }, scores: { pos: 1, mot: 3, stress: 0, foc: 3 } },
+            { text: { en: "Vague ideas", bn: "আবছা ধারণা", hi: "धुंधला विचार" }, scores: { pos: 0, mot: 0, stress: 0, foc: 0 } },
+            { text: { en: "No goal", bn: "না", hi: "कोई लक्ष्य नहीं" }, scores: { pos: -1, mot: -2, stress: 0, foc: -2 } }
+        ]
+    },
+    {
+        id: 11,
+        text: { en: "How does your body feel?", bn: "শরীর কেমন লাগছে?", hi: "शरीर कैसा महसूस कर रहा है?" },
+        options: [
+            { text: { en: "Relaxed", bn: "ঝরঝরে", hi: "आरामदायक" }, scores: { pos: 2, mot: 0, stress: -2, foc: 1 } },
+            { text: { en: "Tense / Tight", bn: "আড়ষ্ট / টানটান", hi: "तनावपूर्ण" }, scores: { pos: -1, mot: 0, stress: 3, foc: -1 } },
+            { text: { en: "Heavy", bn: "ভারী", hi: "भारी" }, scores: { pos: -1, mot: -2, stress: 1, foc: 0 } }
+        ]
+    },
+    {
+        id: 12,
+        text: { en: "Final check: Are you happy?", bn: "শেষ প্রশ্ন: আপনি কি খুশি?", hi: "अंतिम प्रश्न: क्या आप खुश हैं?" },
+        options: [
+            { text: { en: "Yes!", bn: "হ্যাঁ!", hi: "हाँ!" }, scores: { pos: 3, mot: 1, stress: 0, foc: 0 } },
+            { text: { en: "Could be better", bn: "আরও ভালো হতে পারতাম", hi: "बेहतर हो सकता था" }, scores: { pos: 0, mot: 1, stress: 1, foc: 0 } },
+            { text: { en: "No", bn: "না", hi: "नहीं" }, scores: { pos: -2, mot: -1, stress: 2, foc: 0 } }
+        ]
+    }
+];
+
+/* ----------------------------------------------------
+   2. APP STATE & VARIABLES
+   ---------------------------------------------------- */
+let state = {
+    lang: 'en',
+    darkMode: false,
+    currentQuestionIndex: 0,
+    scores: { pos: 0, mot: 0, stress: 0, foc: 0 },
+    history: []
+};
+
+let moodChart = null;
+
+/* ----------------------------------------------------
+   3. INIT & LANGUAGE
+   ---------------------------------------------------- */
+window.onload = () => {
+    // Load from LocalStorage
+    const savedData = localStorage.getItem('mindsetApp_data');
+    if (savedData) {
+        const parsed = JSON.parse(savedData);
+        state.history = parsed.history || [];
+        state.lang = parsed.lang || 'en';
+        state.darkMode = parsed.darkMode || false;
+        
+        // Apply saved settings
+        applyTheme();
+        updateText();
+        
+        // Skip language screen if already set
+        if (parsed.lang) {
+            showView('view-home');
+        }
+    } else {
+        // First time user
+        showView('view-lang');
+    }
+};
+
+function saveData() {
+    localStorage.setItem('mindsetApp_data', JSON.stringify({
+        history: state.history,
+        lang: state.lang,
+        darkMode: state.darkMode
+    }));
+}
+
+function setLanguage(lang) {
+    state.lang = lang;
+    document.body.setAttribute('data-lang', lang);
+    updateText();
+    saveData();
+    showView('view-home');
+}
+
+function updateText() {
+    const t = translations[state.lang];
+    document.getElementById('home-title').innerText = t.homeTitle;
+    document.getElementById('home-desc').innerText = t.homeDesc;
+    document.getElementById('btn-start').innerText = t.btnStart;
+    
+    document.getElementById('result-title').innerText = t.resultTitle;
+    document.getElementById('advice-title').innerText = t.adviceTitle;
+    document.getElementById('btn-home').innerText = t.btnHome;
+    document.getElementById('btn-share').innerText = t.btnShare;
+    
+    document.getElementById('history-title').innerText = t.historyTitle;
+    document.getElementById('settings-title').innerText = t.settingsTitle;
+    document.getElementById('lbl-darkmode').innerText = t.lblDarkMode;
+    document.getElementById('lbl-lang').innerText = t.lblLang;
+    document.getElementById('btn-reset').innerText = t.btnReset;
+}
+
+/* ----------------------------------------------------
+   4. NAVIGATION
+   ---------------------------------------------------- */
+function showView(viewId) {
+    document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+    document.getElementById(viewId).classList.add('active');
+}
+
+/* ----------------------------------------------------
+   5. QUIZ LOGIC
+   ---------------------------------------------------- */
+function startQuiz() {
+    state.currentQuestionIndex = 0;
+    state.scores = { pos: 0, mot: 0, stress: 0, foc: 0 };
+    renderQuestion();
+    showView('view-quiz');
+}
+
+function renderQuestion() {
+    const q = questionsData[state.currentQuestionIndex];
+    const container = document.getElementById('options-container');
+    container.innerHTML = '';
+    
+    // Update Text
+    document.getElementById('question-text').innerText = q.text[state.lang];
+    
+    // Update Progress
+    const pct = ((state.currentQuestionIndex) / questionsData.length) * 100;
+    document.getElementById('progress-fill').style.width = `${pct}%`;
+
+    // Render Options
+    q.options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.innerHTML = `<span style="font-size:1.1rem; font-weight:600;">${opt.text[state.lang]}</span>`;
+        btn.onclick = () => handleAnswer(opt.scores);
+        container.appendChild(btn);
+    });
+}
+
+function handleAnswer(scores) {
+    // Add scores
+    state.scores.pos += scores.pos;
+    state.scores.mot += scores.mot;
+    state.scores.stress += scores.stress;
+    state.scores.foc += scores.foc;
+
+    state.currentQuestionIndex++;
+    
+    if (state.currentQuestionIndex < questionsData.length) {
+        renderQuestion();
+    } else {
+        finishQuiz();
+    }
+}
+
+/* ----------------------------------------------------
+   6. ANALYSIS ENGINE
+   ---------------------------------------------------- */
+function finishQuiz() {
+    // Logic to determine dominant mindset
+    const s = state.scores;
+    let resultKey = 'positive'; // default
+    let emoji = '😊';
+
+    // Normalize comparison (rough logic)
+    // Priority: Sad > Overthinking > Stressed > Motivated > Focused > Positive
+    
+    if (s.stress >= 8 && s.pos <= 0) {
+        resultKey = 'sad';
+        emoji = '🌧️';
+    } else if (s.stress >= 6 && s.foc <= 0) {
+        resultKey = 'overthinking';
+        emoji = '🌀';
+    } else if (s.stress >= 5) {
+        resultKey = 'stressed';
+        emoji = '🤯';
+    } else if (s.mot >= 8) {
+        resultKey = 'motivated';
+        emoji = '🔥';
+    } else if (s.foc >= 8) {
+        resultKey = 'focused';
+        emoji = '🎯';
+    } else {
+        resultKey = 'positive';
+        emoji = '☀️';
+    }
+
+    const t = translations[state.lang].mindsets[resultKey];
+
+    // Show Results
+    document.getElementById('result-name').innerText = t.name;
+    document.getElementById('result-desc').innerText = t.desc;
+    document.getElementById('result-advice').innerText = t.advice;
+    document.getElementById('result-emoji').innerText = emoji;
+
+    // Badges
+    const badgesDiv = document.getElementById('score-badges');
+    badgesDiv.innerHTML = `
+        <span class="badge">Positivity: ${s.pos}</span>
+        <span class="badge">Stress: ${s.stress}</span>
+        <span class="badge">Motivation: ${s.mot}</span>
+        <span class="badge">Focus: ${s.foc}</span>
+    `;
+
+    // Save History
+    const entry = {
+        date: new Date().toLocaleDateString(),
+        type: t.name,
+        score: calculateMoodScore(s), // Single metric for graph
+        lang: state.lang
+    };
+    state.history.push(entry);
+    saveData();
+
+    showView('view-result');
+}
+
+// Convert complex scores to a simple 0-100 "Mood Score" for graph
+function calculateMoodScore(s) {
+    // Formula: Base 50 + Positivity + Motivation + Focus - Stress - Overthinking
+    let raw = 50 + (s.pos * 2) + (s.mot * 1.5) + (s.foc * 1) - (s.stress * 2);
+    if(raw > 100) raw = 100;
+    if(raw < 0) raw = 0;
+    return Math.round(raw);
+}
+
+/* ----------------------------------------------------
+   7. HISTORY & CHART
+   ---------------------------------------------------- */
+function loadHistory() {
+    const list = document.getElementById('history-list');
+    list.innerHTML = '';
+    
+    // Reverse for list (newest first)
+    [...state.history].reverse().forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'card';
+        div.style.padding = '15px';
+        div.style.marginBottom = '10px';
+        div.style.display = 'flex';
+        div.style.justifyContent = 'space-between';
+        div.innerHTML = `<span>${item.date}</span> <strong>${item.type}</strong>`;
+        list.appendChild(div);
+    });
+
+    renderChart();
+}
+
+function renderChart() {
+    const ctx = document.getElementById('moodChart').getContext('2d');
+    
+    // Prepare Data (Last 7 entries)
+    const recent = state.history.slice(-7);
+    const labels = recent.map(i => i.date.substring(0,5)); // Short date
+    const dataPoints = recent.map(i => i.score);
+
+    if (moodChart) moodChart.destroy();
+
+    moodChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Mood Score',
+                data: dataPoints,
+                borderColor: '#6C63FF',
+                backgroundColor: 'rgba(108, 99, 255, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { min: 0, max: 100, grid: { color: 'rgba(0,0,0,0.05)' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+}
+
+/* ----------------------------------------------------
+   8. SETTINGS & UTILS
+   ---------------------------------------------------- */
+function toggleTheme() {
+    state.darkMode = !state.darkMode;
+    applyTheme();
+    saveData();
+}
+
+function applyTheme() {
+    const toggle = document.getElementById('toggle-theme');
+    if (state.darkMode) {
+        document.body.setAttribute('data-theme', 'dark');
+        toggle.classList.add('toggle-active');
+    } else {
+        document.body.setAttribute('data-theme', 'light');
+        toggle.classList.remove('toggle-active');
+    }
+}
+
+function clearHistory() {
+    if(confirm('Delete all history?')) {
+        state.history = [];
+        saveData();
+        alert(translations[state.lang].alertReset);
+        loadHistory(); // refresh if on history page
+    }
+}
+
+function shareResult() {
+    const text = `I just checked my mindset! Result: ${document.getElementById('result-name').innerText} ${document.getElementById('result-emoji').innerText}. Check yours now!`;
+    if (navigator.share) {
+        navigator.share({
+            title: 'Mindset Check',
+            text: text,
+            url: window.location.href
+        });
+    } else {
+        // Fallback
+        prompt("Copy this link:", text);
+    }
+}
+
+</script>
+</body>
+</html>
